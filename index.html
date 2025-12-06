@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>형태소 연습 퀴즈 (나누기 + 분류)</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "맑은 고딕", sans-serif;
+      line-height: 1.5;
+      padding: 16px;
+      max-width: 980px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 1.4rem;
+      margin-bottom: 0.3rem;
+    }
+    .desc {
+      font-size: 0.9rem;
+      color: #555;
+      margin-bottom: 1rem;
+    }
+    .tabs {
+      margin-bottom: 12px;
+    }
+    .tabs button {
+      padding: 6px 12px;
+      margin-right: 6px;
+      border-radius: 4px 4px 0 0;
+      border: 1px solid #aaa;
+      border-bottom: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+      background: #f0f0f0;
+    }
+    .tabs button.active {
+      background: #ffffff;
+      font-weight: bold;
+    }
+    .tab-panel {
+      border: 1px solid #aaa;
+      border-radius: 0 4px 4px 4px;
+      padding: 12px;
+      margin-bottom: 16px;
+    }
+    .sentence-block {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+    }
+    .sentence-text {
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+    .small-desc {
+      font-size: 0.82rem;
+      color: #666;
+      margin-bottom: 4px;
+    }
+    .seg-input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 4px 6px;
+      margin: 4px 0;
+      font-size: 0.9rem;
+    }
+    .seg-answer {
+      font-size: 0.85rem;
+      color: #333;
+      margin-top: 3px;
+      display: none;
+    }
+    .seg-answer strong {
+      font-weight: bold;
+    }
+    .seg-btn-row {
+      margin-top: 4px;
+    }
+    .seg-btn-row button {
+      padding: 3px 8px;
+      font-size: 0.8rem;
+      border-radius: 4px;
+      border: 1px solid #aaa;
+      cursor: pointer;
+      background: #fafafa;
+      margin-right: 4px;
+    }
+
+    /* 분류용 스타일 */
+    #controls {
+      margin-bottom: 12px;
+    }
+    #controls button {
+      padding: 6px 12px;
+      margin-right: 8px;
+      border-radius: 4px;
+      border: 1px solid #aaa;
+      cursor: pointer;
+      font-size: 0.9rem;
+      background: #fafafa;
+    }
+    #result {
+      margin-top: 8px;
+      font-size: 0.9rem;
+      font-weight: bold;
+    }
+    .morpheme-line {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .morpheme {
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 4px 6px;
+      min-width: 90px;
+      text-align: center;
+      font-size: 0.85rem;
+      background: #fafafa;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .morpheme-text {
+      font-weight: bold;
+      margin-bottom: 3px;
+    }
+    .toggle-row {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .toggle-row button {
+      font-size: 0.76rem;
+      padding: 2px 4px;
+      border-radius: 4px;
+      border: 1px solid #bbb;
+      cursor: pointer;
+      background: #fff;
+    }
+    .morpheme.correct {
+      border-color: #2e8b57;
+      background: #e9fbe9;
+    }
+    .morpheme.wrong {
+      border-color: #cc0000;
+      background: #ffecec;
+    }
+    .legend {
+      font-size: 0.8rem;
+      color: #666;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <h1>형태소 연습 퀴즈</h1>
+  <div class="desc">
+    같은 문장으로<br>
+    <b>1단계: 형태소 단위로 나누기</b> → <b>2단계: 자립/의존 · 실질/형식 분류</b>를 연습할 수 있는 페이지입니다.
+  </div>
+
+  <div class="tabs">
+    <button id="tabSeg" class="active">1단계: 형태소 나누기</button>
+    <button id="tabClass">2단계: 형태소 분류</button>
+  </div>
+
+  <!-- 1단계: 형태소 나누기 -->
+  <div id="panelSeg" class="tab-panel">
+    <div class="small-desc">
+      · 문장을 읽고, <b>형태소 사이에 슬래시(/)</b>를 넣어서 직접 나누어 보세요.<br>
+      · 예) <code>나/는/오늘/학교/에/가/았/다</code>
+    </div>
+    <div id="segQuiz"></div>
+  </div>
+
+  <!-- 2단계: 형태소 분류 -->
+  <div id="panelClass" class="tab-panel" style="display:none;">
+    <div id="controls">
+      <button id="checkBtn">정답 확인 / 채점</button>
+      <button id="resetBtn">선택 초기화</button>
+      <div class="legend">
+        · 자립/의존 버튼: <b>자립 → 의존 → (비우기)</b><br>
+        · 실질/형식 버튼: <b>실질 → 형식 → (비우기)</b><br>
+        · 초록: 두 값 모두 정답 / 빨강: 하나라도 다름
+      </div>
+      <div id="result"></div>
+    </div>
+    <div id="classQuiz"></div>
+  </div>
+
+  <script>
+    // 공통 데이터: 하나의 문장에 대해
+    // 1) segAnswer: 형태소 나누기 정답 (슬래시로 구분)
+    // 2) morphemes: 각 형태소별 분류 정답
+    const quizData = [
+      {
+        sentence: "나는 오늘 학교에 갔다.",
+        segAnswer: "나/는/오늘/학교/에/가/았/다",
+        morphemes: [
+          { text: "나",     free: "자립", meaning: "실질" },
+          { text: "는",     free: "의존", meaning: "형식" },
+          { text: "오늘",   free: "자립", meaning: "실질" },
+          { text: "학교",   free: "자립", meaning: "실질" },
+          { text: "에",     free: "의존", meaning: "형식" },
+          { text: "가",     free: "의존", meaning: "실질" },
+          { text: "았",     free: "의존", meaning: "형식" },
+          { text: "다",     free: "의존", meaning: "형식" }
+        ]
+      },
+      {
+        sentence: "민수는 운동장에서 친구와 축구를 했다.",
+        segAnswer: "민수/는/운동장/에서/친구/와/축구/를/하/였/다",
+        morphemes: [
+          { text: "민수",   free: "자립", meaning: "실질" },
+          { text: "는",     free: "의존", meaning: "형식" },
+          { text: "운동장", free: "자립", meaning: "실질" },
+          { text: "에서",   free: "의존", meaning: "형식" },
+          { text: "친구",   free: "자립", meaning: "실질" },
+          { text: "와",     free: "의존", meaning: "형식" },
+          { text: "축구",   free: "자립", meaning: "실질" },
+          { text: "를",     free: "의존", meaning: "형식" },
+          { text: "하",     free: "의존", meaning: "실질" },
+          { text: "였",     free: "의존", meaning: "형식" },
+          { text: "다",     free: "의존", meaning: "형식" }
+        ]
+      },
+      {
+        sentence: "어제는 비가 많이 와서 길이 미끄러웠다.",
+        segAnswer: "어제/는/비/가/많이/오/아/서/길/이/미끄럽/었/다",
+        morphemes: [
+          { text: "어제",   free: "자립", meaning: "실질" },
+          { text: "는",     free: "의존", meaning: "형식" },
+          { text: "비",     free: "자립", meaning: "실질" },
+          { text: "가",     free: "의존", meaning: "형식" },
+          { text: "많이",   free: "자립", meaning: "실질" },
+          { text: "오",     free: "의존", meaning: "실질" },
+          { text: "아",     free: "의존", meaning: "형식" },
+          { text: "서",     free: "의존", meaning: "형식" },
+          { text: "길",     free: "자립", meaning: "실질" },
+          { text: "이",     free: "의존", meaning: "형식" },
+          { text: "미끄럽", free: "의존", meaning: "실질" },
+          { text: "었",     free: "의존", meaning: "형식" },
+          { text: "다",     free: "의존", meaning: "형식" }
+        ]
+      },
+      {
+        sentence: "우리는 시험을 잘 보기 위해 열심히 공부했다.",
+        segAnswer: "우리/는/시험/을/잘/보/기/위하/여/열심히/공부/하/였/다",
+        morphemes: [
+          { text: "우리",   free: "자립", meaning: "실질" },
+          { text: "는",     free: "의존", meaning: "형식" },
+          { text: "시험",   free: "자립", meaning: "실질" },
+          { text: "을",     free: "의존", meaning: "형식" },
+          { text: "잘",     free: "자립", meaning: "실질" },
+          { text: "보",     free: "의존", meaning: "실질" },
+          { text: "기",     free: "의존", meaning: "형식" },
+          { text: "위하",   free: "의존", meaning: "실질" },
+          { text: "여",     free: "의존", meaning: "형식" },
+          { text: "열심히", free: "자립", meaning: "실질" },
+          { text: "공부",   free: "자립", meaning: "실질" },
+          { text: "하",     free: "의존", meaning: "실질" },
+          { text: "였",     free: "의존", meaning: "형식" },
+          { text: "다",     free: "의존", meaning: "형식" }
+        ]
+      },
+      {
+        sentence: "할머니께서 정성껏 만든 김치를 맛있게 먹었다.",
+        segAnswer: "할머니/께서/정성/껏/만들/ㄴ/김치/를/맛있/게/먹/었/다",
+        morphemes: [
+          { text: "할머니", free: "자립", meaning: "실질" },
+          { text: "께서",   free: "의존", meaning: "형식" },
+          { text: "정성",   free: "자립", meaning: "실질" },
+          { text: "껏",     free: "의존", meaning: "형식" },
+          { text: "만들",   free: "의존", meaning: "실질" },
+          { text: "ㄴ",     free: "의존", meaning: "형식" },
+          { text: "김치",   free: "자립", meaning: "실질" },
+          { text: "를",     free: "의존", meaning: "형식" },
+          { text: "맛있",   free: "의존", meaning: "실질" },
+          { text: "게",     free: "의존", meaning: "형식" },
+          { text: "먹",     free: "의존", meaning: "실질" },
+          { text: "었",     free: "의존", meaning: "형식" },
+          { text: "다",     free: "의존", meaning: "형식" }
+        ]
+      },
+      {
+        sentence: "그는 책임감을 가지고 맡은 일을 끝까지 해냈다.",
+        segAnswer: "그/는/책임/감/을/가지/고/맡/은/일/을/끝/까지/하/여/내/었/다",
+        morphemes: [
+          { text: "그",     free: "자립", meaning: "실질" },
+          { text: "는",     free: "의존", meaning: "형식" },
+          { text: "책임",   free: "자립", meaning: "실질" },
+          { text: "감",     free: "의존", meaning: "형식" },
+          { text: "을",     free: "의존", meaning: "형식" },
+          { text: "가지",   free: "의존", meaning: "실질" },
+          { text: "고",     free: "의존", meaning: "형식" },
+          { text: "맡",     free: "의존", meaning: "실질" },
+          { text: "은",     free: "의존", meaning: "형식" },
+          { text: "일",     free: "자립", meaning: "실질" },
+          { text: "을",     free: "의존", meaning: "형식" },
+          { text: "끝",     free: "자립", meaning: "실질" },
+          { text: "까지",   free: "의존", meaning: "형식" },
+          { text: "하",     free: "의존", meaning: "실질" },
+          { text: "여",     free: "의존", meaning: "형식" },
+          { text: "내",     free: "의존", meaning: "형식" }, // 보조 용언
+          { text: "었",     free: "의존", meaning: "형식" },
+          { text: "다",     free: "의존", meaning: "형식" }
+        ]
+      },
+      {
+        sentence: "새로운 환경에 빨리 적응하는 사람도 있고, 쉽게 포기하는 사람도 있다.",
+        segAnswer: "새롭/은/환경/에/빨리/적응/하/는/사람/도/있/고/쉽게/포기/하/는/사람/도/있/다",
+        morphemes: [
+          { text: "새롭",   free: "의존", meaning: "실질" },
+          { text: "은",     free: "의존", meaning: "형식" },
+          { text: "환경",   free: "자립", meaning: "실질" },
+          { text: "에",     free: "의존", meaning: "형식" },
+          { text: "빨리",   free: "자립", meaning: "실질" },
+          { text: "적응",   free: "자립", meaning: "실질" },
+          { text: "하",     free: "의존", meaning: "실질" },
+          { text: "는",     free: "의존", meaning: "형식" },
+          { text: "사람",   free: "자립", meaning: "실질" },
+          { text: "도",     free: "의존", meaning: "형식" },
+          { text: "있",     free: "의존", meaning: "실질" },
+          { text: "고",     free: "의존", meaning: "형식" },
+          { text: "쉽게",   free: "자립", meaning: "실질" },
+          { text: "포기",   free: "자립", meaning: "실질" },
+          { text: "하",     free: "의존", meaning: "실질" },
+          { text: "는",     free: "의존", meaning: "형식" },
+          { text: "사람",   free: "자립", meaning: "실질" },
+          { text: "도",     free: "의존", meaning: "형식" },
+          { text: "있",     free: "의존", meaning: "실질" },
+          { text: "다",     free: "의존", meaning: "형식" }
+        ]
+      },
+      {
+        sentence: "혼자서 고민하지 말고 주변 사람들에게 솔직하게 도움을 요청해라.",
+        segAnswer: "혼자/서/고민/하/지/말/고/주변/사람/들/에게/솔직하/게/도움/을/요청하/어라",
+        morphemes: [
+          { text: "혼자",   free: "자립", meaning: "실질" },
+          { text: "서",     free: "의존", meaning: "형식" },
+          { text: "고민",   free: "자립", meaning: "실질" },
+          { text: "하",     free: "의존", meaning: "실질" },
+          { text: "지",     free: "의존", meaning: "형식" },
+          { text: "말",     free: "의존", meaning: "형식" },
+          { text: "고",     free: "의존", meaning: "형식" },
+          { text: "주변",   free: "자립", meaning: "실질" },
+          { text: "사람",   free: "자립", meaning: "실질" },
+          { text: "들",     free: "의존", meaning: "형식" },
+          { text: "에게",   free: "의존", meaning: "형식" },
+          { text: "솔직하", free: "의존", meaning: "실질" },
+          { text: "게",     free: "의존", meaning: "형식" },
+          { text: "도움",   free: "자립", meaning: "실질" },
+          { text: "을",     free: "의존", meaning: "형식" },
+          { text: "요청하", free: "의존", meaning: "실질" },
+          { text: "어라",   free: "의존", meaning: "형식" }
+        ]
+      },
+      {
+        sentence: "학생들은 도서관에서 조용히 책을 읽었다.",
+        segAnswer: "학생/들/은/도서관/에서/조용히/책/을/읽/었/다",
+        morphemes: [
+          { text: "학생",   free: "자립", meaning: "실질" },
+          { text: "들",     free: "의존", meaning: "형식" },
+          { text: "은",     free: "의존", meaning: "형식" },
+          { text: "도서관", free: "자립", meaning: "실질" },
+          { text: "에서",   free: "의존", meaning: "형식" },
+          { text: "조용히", free: "자립", meaning: "실질" },
+          { text: "책",     free: "자립", meaning: "실질" },
+          { text: "을",     free: "의존", meaning: "형식" },
+          { text: "읽",     free: "의존", meaning: "실질" },
+          { text: "었",     free: "의존", meaning: "형식" },
+          { text: "다",     free: "의존", meaning: "형식" }
+        ]
+      },
+      {
+        sentence: "불가능하다고 생각했던 일이 실제로 일어나기도 한다.",
+        segAnswer: "불/가능/하/다/고/생각하/였/던/일/이/실제/로/일어나/기/도/하/ㄴ다",
+        morphemes: [
+          { text: "불",     free: "의존", meaning: "형식" },
+          { text: "가능",   free: "자립", meaning: "실질" },
+          { text: "하",     free: "의존", meaning: "실질" },
+          { text: "다",     free: "의존", meaning: "형식" },
+          { text: "고",     free: "의존", meaning: "형식" },
+          { text: "생각하", free: "의존", meaning: "실질" },
+          { text: "였",     free: "의존", meaning: "형식" },
+          { text: "던",     free: "의존", meaning: "형식" },
+          { text: "일",     free: "자립", meaning: "실질" },
+          { text: "이",     free: "의존", meaning: "형식" },
+          { text: "실제",   free: "자립", meaning: "실질" },
+          { text: "로",     free: "의존", meaning: "형식" },
+          { text: "일어나", free: "의존", meaning: "실질" },
+          { text: "기",     free: "의존", meaning: "형식" },
+          { text: "도",     free: "의존", meaning: "형식" },
+          { text: "하",     free: "의존", meaning: "실질" },
+          { text: "ㄴ다",   free: "의존", meaning: "형식" }
+        ]
+      }
+    ];
+
+    // 1단계: 형태소 나누기 화면 만들기
+    function renderSegQuiz() {
+      const container = document.getElementById("segQuiz");
+      quizData.forEach((item, idx) => {
+        const block = document.createElement("div");
+        block.className = "sentence-block";
+
+        const title = document.createElement("div");
+        title.className = "sentence-text";
+        title.textContent = (idx + 1) + ". " + item.sentence;
+        block.appendChild(title);
+
+        const desc = document.createElement("div");
+        desc.className = "small-desc";
+        desc.textContent = "형태소 단위로 나누어 적어 보세요. (슬래시 / 사용)";
+        block.appendChild(desc);
+
+        const input = document.createElement("input");
+        input.type = "text";
+        input.className = "seg-input";
+        input.dataset.index = idx;
+        input.placeholder = "예) 나/는/오늘/학교/에/가/았/다";
+        block.appendChild(input);
+
+        const btnRow = document.createElement("div");
+        btnRow.className = "seg-btn-row";
+
+        const showBtn = document.createElement("button");
+        showBtn.type = "button";
+        showBtn.textContent = "정답 보기 / 숨기기";
+        showBtn.dataset.index = idx;
+        btnRow.appendChild(showBtn);
+
+        const clearBtn = document.createElement("button");
+        clearBtn.type = "button";
+        clearBtn.textContent = "입력 지우기";
+        clearBtn.dataset.index = idx;
+        btnRow.appendChild(clearBtn);
+
+        block.appendChild(btnRow);
+
+        const ansDiv = document.createElement("div");
+        ansDiv.className = "seg-answer";
+        ansDiv.dataset.index = idx;
+        ansDiv.innerHTML = "<strong>정답:</strong> " + item.segAnswer;
+        block.appendChild(ansDiv);
+
+        container.appendChild(block);
+
+        showBtn.addEventListener("click", () => {
+          ansDiv.style.display = (ansDiv.style.display === "none" || ansDiv.style.display === "") ? "block" : "none";
+        });
+
+        clearBtn.addEventListener("click", () => {
+          input.value = "";
+        });
+      });
+    }
+
+    // 2단계: 형태소 분류 화면 만들기 (기존 클릭 퀴즈)
+    function renderClassQuiz() {
+      const container = document.getElementById("classQuiz");
+      quizData.forEach((item, idx) => {
+        const block = document.createElement("div");
+        block.className = "sentence-block";
+
+        const title = document.createElement("div");
+        title.className = "sentence-text";
+        title.textContent = (idx + 1) + ". " + item.sentence;
+        block.appendChild(title);
+
+        const line = document.createElement("div");
+        line.className = "morpheme-line";
+
+        item.morphemes.forEach((m) => {
+          const mDiv = document.createElement("div");
+          mDiv.className = "morpheme";
+          mDiv.dataset.answerFree = m.free;
+          mDiv.dataset.answerMeaning = m.meaning;
+          mDiv.dataset.userFree = "";
+          mDiv.dataset.userMeaning = "";
+
+          const textDiv = document.createElement("div");
+          textDiv.className = "morpheme-text";
+          textDiv.textContent = m.text;
+          mDiv.appendChild(textDiv);
+
+          const btnRow = document.createElement("div");
+          btnRow.className = "toggle-row";
+
+          const freeBtn = document.createElement("button");
+          freeBtn.type = "button";
+          freeBtn.className = "toggle free";
+          freeBtn.textContent = "(자립/의존)";
+          freeBtn.addEventListener("click", () => {
+            const current = mDiv.dataset.userFree || "";
+            let next = "";
+            if (current === "") next = "자립";
+            else if (current === "자립") next = "의존";
+            else next = "";
+            mDiv.dataset.userFree = next;
+            freeBtn.textContent = next || "(자립/의존)";
+            mDiv.classList.remove("correct", "wrong");
+          });
+          btnRow.appendChild(freeBtn);
+
+          const meanBtn = document.createElement("button");
+          meanBtn.type = "button";
+          meanBtn.className = "toggle meaning";
+          meanBtn.textContent = "(실질/형식)";
+          meanBtn.addEventListener("click", () => {
+            const current = mDiv.dataset.userMeaning || "";
+            let next = "";
+            if (current === "") next = "실질";
+            else if (current === "실질") next = "형식";
+            else next = "";
+            mDiv.dataset.userMeaning = next;
+            meanBtn.textContent = next || "(실질/형식)";
+            mDiv.classList.remove("correct", "wrong");
+          });
+          btnRow.appendChild(meanBtn);
+
+          mDiv.appendChild(btnRow);
+          line.appendChild(mDiv);
+        });
+
+        block.appendChild(line);
+        container.appendChild(block);
+      });
+    }
+
+    // 분류 채점
+    function checkAnswers() {
+      let total = 0;
+      let correct = 0;
+      let filled = 0;
+
+      document.querySelectorAll(".morpheme").forEach((mDiv) => {
+        total++;
+        const ansFree = mDiv.dataset.answerFree;
+        const ansMeaning = mDiv.dataset.answerMeaning;
+        const userFree = mDiv.dataset.userFree;
+        const userMeaning = mDiv.dataset.userMeaning;
+
+        if (userFree && userMeaning) filled++;
+
+        if (userFree === ansFree && userMeaning === ansMeaning) {
+          mDiv.classList.add("correct");
+          mDiv.classList.remove("wrong");
+          correct++;
+        } else {
+          mDiv.classList.add("wrong");
+          mDiv.classList.remove("correct");
+        }
+      });
+
+      const resultDiv = document.getElementById("result");
+      resultDiv.textContent =
+        `채점 결과: ${correct} / ${total} 개 정답 (자립/의존 + 실질/형식을 둘 다 고른 형태소: ${filled}개)`;
+    }
+
+    // 분류 초기화
+    function resetAnswers() {
+      document.querySelectorAll(".morpheme").forEach((mDiv) => {
+        mDiv.dataset.userFree = "";
+        mDiv.dataset.userMeaning = "";
+        mDiv.classList.remove("correct", "wrong");
+        const freeBtn = mDiv.querySelector(".toggle.free");
+        const meanBtn = mDiv.querySelector(".toggle.meaning");
+        if (freeBtn) freeBtn.textContent = "(자립/의존)";
+        if (meanBtn) meanBtn.textContent = "(실질/형식)";
+      });
+      document.getElementById("result").textContent = "";
+    }
+
+    // 탭 전환
+    function setupTabs() {
+      const tabSeg = document.getElementById("tabSeg");
+      const tabClass = document.getElementById("tabClass");
+      const panelSeg = document.getElementById("panelSeg");
+      const panelClass = document.getElementById("panelClass");
+
+      tabSeg.addEventListener("click", () => {
+        tabSeg.classList.add("active");
+        tabClass.classList.remove("active");
+        panelSeg.style.display = "block";
+        panelClass.style.display = "none";
+      });
+
+      tabClass.addEventListener("click", () => {
+        tabClass.classList.add("active");
+        tabSeg.classList.remove("active");
+        panelClass.style.display = "block";
+        panelSeg.style.display = "none";
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      renderSegQuiz();
+      renderClassQuiz();
+      setupTabs();
+      document.getElementById("checkBtn").addEventListener("click", checkAnswers);
+      document.getElementById("resetBtn").addEventListener("click", resetAnswers);
+    });
+  </script>
+</body>
+</html>
